@@ -50,6 +50,13 @@
         <param name="LRchecktresh" value="$(arg LRchecktresh)"/>
     </node>
 
+    <!-- TODO(lucasw) can't run this also, one or the other reports a device not available
+    <node name="rgb_publisher" pkg="depthai_examples" type="rgb_node" output="screen" required="true">
+        <param name="camera_name"      value="$(arg camera_name)"/>
+        <param name="camera_param_uri" value="$(arg camera_param_uri)"/>
+    </node>
+    -->
+
     <node pkg="nodelet" type="nodelet" name="depth_image_convertion_nodelet"
         args="load depth_image_proc/convert_metric nodelet_manager">
         <remap from="image_raw" to="/stereo_publisher/stereo/depth"/>    
@@ -58,6 +65,7 @@
 
 
     <node pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud_nodelet"
+      if="false"
         args="load depth_image_proc/point_cloud_xyz nodelet_manager">
         <remap from="camera_info" to="/stereo_publisher/stereo/camera_info"/>
         <remap from="image_rect" to="/stereo_publisher/stereo/image"/>    

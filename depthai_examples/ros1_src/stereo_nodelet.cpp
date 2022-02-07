@@ -19,7 +19,9 @@ namespace depthai_examples{
 {
 
     std::unique_ptr<dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame>> leftPublish, rightPublish, depthPublish;
+    std::unique_ptr<dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame>> rgbPublish;
     std::unique_ptr<dai::rosBridge::ImageConverter> leftConverter, rightConverter;
+    std::unique_ptr<dai::rosBridge::ImageConverter> rgbConverter;
     std::unique_ptr<dai::Device> _dev;
 
     public:
@@ -59,6 +61,7 @@ namespace depthai_examples{
             dai::Pipeline pipeline = createPipeline(enableDepth, lrcheck, extended, subpixel, confidence, LRchecktresh);
             _dev = std::make_unique<dai::Device>(pipeline);
 
+            auto rgbQueue = _dev->getOutputQueue("video", 30, false);
             auto leftQueue = _dev->getOutputQueue("left", 30, false);
             auto rightQueue = _dev->getOutputQueue("right", 30, false);
 
@@ -95,7 +98,7 @@ namespace depthai_examples{
                                                                                              "left");
 
             // bridgePublish.startPublisherThread();
-            leftPublish->addPublisherCallback();
+            leftPublish->addPubisherCallback();
 
             rightConverter = std::make_unique<dai::rosBridge::ImageConverter >(deviceName + "_right_camera_optical_frame", true);
             auto rightCameraInfo = rightConverter->calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RIGHT, 1280, 720); 
@@ -112,7 +115,7 @@ namespace depthai_examples{
                                                                                              rightCameraInfo,
                                                                                              "right");
 
-            rightPublish->addPublisherCallback();
+            rightPublish->addPubisherCallback();
 
             // dai::rosBridge::ImageConverter depthConverter(deviceName + "_right_camera_optical_frame");
             depthPublish = std::make_unique<dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame>>
@@ -128,7 +131,23 @@ namespace depthai_examples{
                                                                              rightCameraInfo,
                                                                              "stereo");
 
-            depthPublish->addPublisherCallback();
+            depthPublish->addPubisherCallback();
+
+            rgbConverter = std::make_unique<dai::rosBridge::ImageConverter >(deviceName + "_rgb_camera_optical_frame", true);
+            const std::string color_uri = cameraParamUri + "/" + "color.yaml";
+            rgbPublish = std::make_unique<dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame>>
+                                                                                 (rgbQueue,
+                                                                                  pnh,
+                                                                                  std::string("color/image"),
+                                                                                  std::bind(&dai::rosBridge::ImageConverter::toRosMsg,
+                                                                                  &rgbConverter, // since the converter has the same frame name
+                                                                                                 // and image type is also same we can reuse it
+                                                                                  std::placeholders::_1,
+                                                                                  std::placeholders::_2),
+                                                                                  30,
+                                                                                  color_uri,
+                                                                                  "color");
+            rgbPublish->addPubisherCallback();
 
             // We can add the rectified frames also similar to these publishers. 
             // Left them out so that users can play with it by adding and removing
